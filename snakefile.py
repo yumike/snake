@@ -11,7 +11,7 @@ def build():
     print(" - build")
 
 
-@task
+@task(deps=clean)
 def install():
     print(" - install")
 
@@ -21,8 +21,10 @@ def configure():
     print(" - configure")
 
 
-@task
-@needs(clean, configure)
-@needs(build, install)
+@task(deps=(build, install))
 def default():
     print(" - default")
+
+
+default.deps.add(clean, configure)
+task('build').deps.add('clean')
