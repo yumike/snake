@@ -3,28 +3,18 @@ from snake.api import *
 
 @task
 def clean():
-    print(" - clean")
-
-
-@task
-def build():
-    print(" - build")
-
+    print 'clean'
 
 @task(deps=clean)
-def install():
-    print(" - install")
-
-
-@task
 def configure():
-    print(" - configure")
+    print 'configure'
 
+@task(deps=configure)
+def build():
+    print 'build'
 
-@task(deps=(build, install))
-def default():
-    print(" - default")
+@task(deps=build)
+def install():
+    print 'install'
 
-
-default.deps.add(clean, configure)
-task('build').deps.add('clean')
+task('default', deps='install')
