@@ -1,3 +1,4 @@
+import optparse
 import os
 import sys
 
@@ -15,12 +16,27 @@ def load_snakefile():
     del sys.path[0]
 
 
+def print_task_list(option, opt_str, value, parser):
+    print("Task list:")
+    for name in sorted(env["tasks"]):
+        print " - %s" % name
+    exit()
+
+
 def main():
-    args = sys.argv[1:]
     load_snakefile()
-    name = args[0] if args else 'default'
-    task = env["tasks"].get(name)
-    if not task:
-        print >> sys.stderr, "Error: task %r was not found." % name
-        exit(1)
-    task()
+    usage = "%prog [options] [task] ..."
+    parser = optparse.OptionParser(usage="%prog [options] [task] ...")
+    parser.add_option(
+        "-l", "--list", action="callback", callback=print_task_list,
+        help="print list of available tasks and exit")
+    parser.disable_interspersed_args()
+    options, args = parser.parse_args()
+    if not args:
+        args = ['default']
+    for name in args:
+        task = env["tasks"].get(name)
+        if not task:
+            print >> sys.stderr, "Error: task %r was not found." % name
+            exit(1)
+        task()
