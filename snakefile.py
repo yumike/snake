@@ -3,18 +3,19 @@ from snake.api import *
 
 @task
 def clean():
-    print 'clean'
+    sh("find . -name '*.pyc' -delete")
+    sh("find . -name '*.pyo' -delete")
 
-@task(deps=clean)
+@task
 def configure():
     print 'configure'
 
-@task(deps=configure)
+@task
 def build():
     print 'build'
 
-@task(deps=build)
+@task
 def install():
     print 'install'
 
-task('default', deps='install')
+task('default', deps=(clean, configure, build, install))
