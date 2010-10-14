@@ -3,9 +3,7 @@ import subprocess
 
 
 def sh(command, capture=False):
-    args = shlex.split(command)
-    kwargs = {}
+    kwargs = {"shell": True}
     if capture:
         kwargs['stdout'] = subprocess.PIPE
-    p = subprocess.Popen(args, **kwargs)
-    return p.communicate()[0]
+    return subprocess.Popen([command], **kwargs).communicate()[0]
