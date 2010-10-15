@@ -1,2 +1,2 @@
-from snake.tasks import env, task
+from snake.tasks import filetask, task
 from snake.utils import sh

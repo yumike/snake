@@ -1,17 +1,33 @@
-env = {
-    'tasks': {},
-    'called': set()
-}
+import os
 
 
-def resolve(name, create=False):
-    try:
-        return env['tasks'][name]
-    except KeyError:
-        if create:
-            return Task(name)
+class TaskNotFound(Exception):
+    pass
+
+
+class _TaskRegistry(object):
+
+    def __init__(self):
+        self._registry = {}
+
+    def add(self, task):
+        self._registry.setdefault(task.__class__, {})[task.name] = task
+
+    def get(self, name, cls=None, fail_silently=False):
+        registry = self._registry
+        if cls:
+            if cls in self._registry and name in self._registry[cls]:
+                return self._registry[cls][name]
         else:
-            raise Exception('Task %r was not found.' % name)
+            for tasks in registry.values():
+                if name in tasks:
+                    return tasks[name]
+        if fail_silently:
+            return
+        raise TaskNotFound("%s %r was not found." % (cls.__name__, name))
+
+
+registry = _TaskRegistry()
 
 
 class DependencyList(list):
@@ -29,30 +45,59 @@ class DependencyList(list):
             self.insert(0, name)
 
 
-class Task(object):
+class BaseTask(object):
 
-    def __init__(self, func, deps=None):
-        if isinstance(func, basestring):
-            self.func = None
-            self.name = func
-        else:
-            self.func = func
-            self.name = func.__name__
+    @classmethod
+    def resolve(cls, name, local=True, create=False):
+        try:
+            return registry.get(name, cls if local else None)
+        except TaskNotFound:
+            if create:
+                return cls(name)
+            raise
+
+    def __init__(self, name, deps=None):
+        self.func = None
+        self.name = name
         self.deps = DependencyList()
         if deps:
             self.deps.add(*deps)
-        env["tasks"][self.name] = self
+        registry.add(self)
 
-    def __call__(self):
-        if self.name not in env['called']:
-            env['called'].add(self.name)
+    def __call__(self, func=None):
+        if hasattr(func, "__call__"):
+            self.func = func
+            return self
+        return self.call()
+
+    def call(self):
+        raise NotImplementedError
+
+
+class Task(BaseTask):
+
+    _called = set()
+
+    def __init__(self, name, deps=None):
+        super(Task, self).__init__(name, deps=deps)
+
+    def call(self):
+        if self.name not in self._called:
+            self._called.add(self.name)
             for dep in self.deps:
-                resolve(dep)()
+                registry.get(dep)()
             if self.func:
                 self.func()
 
-    def __str__(self):
-        return self.name
+
+class FileTask(BaseTask):
+
+    def call(self):
+        if self.func:
+            deps_max_mtime = max(os.stat(dep).st_mtime for dep in self.deps)
+            if not os.path.exists(self.name)  or \
+               os.stat(self.name).st_mtime < deps_max_mtime:
+                self.func(self)
 
 
 def task(*args, **kwargs):
@@ -60,13 +105,23 @@ def task(*args, **kwargs):
     if deps and not isinstance(deps, (list, tuple)):
         deps = [deps]
     def wrapper(func):
-        return func if isinstance(func, Task) else Task(func, deps=deps)
+        if isinstance(func, Task):
+            return func
+        return Task(func.__name__, deps=deps)(func)
     if not args:
         return wrapper
     func = args[0]
     if hasattr(func, '__call__'):
         return wrapper(func)
-    task = resolve(func, create=True)
+    task = Task.resolve(func, create=True)
     if deps:
+        task.deps.add(*deps)
+    return task
+
+
+def filetask(source, deps=None):
+    task = FileTask.resolve(source, create=True)
+    if deps:
+        deps = deps if isinstance(deps, (list, tuple)) else [deps]
         task.deps.add(*deps)
     return task

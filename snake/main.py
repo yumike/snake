@@ -2,7 +2,7 @@ import optparse
 import os
 import sys
 
-from snake.tasks import env
+from snake.tasks import Task, FileTask, registry
 
 
 def load_snakefile():
@@ -17,9 +17,14 @@ def load_snakefile():
 
 
 def print_task_list(option, opt_str, value, parser):
-    print("Task list:")
-    for name in sorted(env["tasks"]):
-        print " - %s" % name
+    if Task in registry and registry[Task]:
+        print("Task list:")
+        for name in sorted(registry[Task]):
+            print " - %s" % name
+    if FileTask in registry and registry[FileTask]:
+        print("File task list:")
+        for name in sorted(registry[FileTask]):
+            print " - %s" % name
     exit()
 
 
@@ -35,7 +40,7 @@ def main():
     if not args:
         args = ['default']
     for name in args:
-        task = env["tasks"].get(name)
+        task = registry.get(name, fail_silently=True)
         if not task:
             print >> sys.stderr, "Error: task %r was not found." % name
             exit(1)
