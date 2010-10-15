@@ -8,19 +8,18 @@ def _(t):
 
 @task
 def clean():
+    sh("rm README.html")
     sh("find . -name '*.pyc' -delete")
     sh("find . -name '*.pyo' -delete")
 
-@task(deps='README.html')
+@task
 def configure():
     print 'configure'
 
-@task
-def build():
-    print 'build'
+task('build', deps='README.html')
 
 @task
 def install():
     print 'install'
 
-task('default', deps=(clean, configure, build, install))
+task('default', deps=(clean, configure, 'build', install))
