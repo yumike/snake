@@ -13,6 +13,12 @@ class _TaskRegistry(object):
     def add(self, task):
         self._registry.setdefault(task.__class__, {})[task.name] = task
 
+    def has_tasks_for(self, cls):
+        return cls in self._registry and self._registry[cls]
+
+    def get_tasks_for(self, cls):
+        return self._registry.get(cls, {})
+
     def get(self, name, cls=None, fail_silently=False):
         registry = self._registry
         if cls:

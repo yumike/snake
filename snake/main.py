@@ -17,13 +17,13 @@ def load_snakefile():
 
 
 def print_task_list(option, opt_str, value, parser):
-    if Task in registry and registry[Task]:
+    if registry.has_tasks_for(Task):
         print("Task list:")
-        for name in sorted(registry[Task]):
+        for name in sorted(registry.get_tasks_for(Task)):
             print " - %s" % name
-    if FileTask in registry and registry[FileTask]:
+    if registry.has_tasks_for(FileTask):
         print("File task list:")
-        for name in sorted(registry[FileTask]):
+        for name in sorted(registry.has_tasks_for(FileTask)):
             print " - %s" % name
     exit()
 
