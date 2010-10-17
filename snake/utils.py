@@ -2,7 +2,7 @@ import subprocess
 
 
 def sh(command, capture=False):
-    kwargs = {"shell": True}
+    kwargs = {'shell': True}
     if capture:
         kwargs['stdout'] = subprocess.PIPE
     print("[sh] %s" % command)
