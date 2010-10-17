@@ -5,15 +5,32 @@ import sys
 from snake.tasks import Task, FileTask, registry
 
 
-def load_snakefile():
-    cwd = os.getcwd()
-    sys.path.insert(0, cwd)
-    try:
-        imported = __import__('snakefile')
-    except ImportError:
-        print >> sys.stderr, "Error: couldn't find any snakefiles."
-        exit(1)
-    del sys.path[0]
+SNAKEFILE_LOADED = False
+
+
+def load_snakefile(path, name='snakefile'):
+    global SNAKEFILE_LOADED
+    if not SNAKEFILE_LOADED:
+        sys.path.insert(0, path)
+        try:
+            imported = __import__(name)
+            SNAKEFILE_LOADED = True
+        except ImportError:
+            print >> sys.stderr, "Error: couldn't find any snakefiles."
+            exit(1)
+        del sys.path[0]
+
+
+def find_snakefile():
+    path = os.getcwd()
+    while True:
+        filepath = os.path.join(path, 'snakefile.py')
+        if os.path.isfile(filepath):
+            load_snakefile(filepath)
+            break
+        if not os.path.split(path)[1]:
+            break
+        path = os.path.split(path)[0]
 
 
 def print_task_list(option, opt_str, value, parser):
@@ -29,7 +46,7 @@ def print_task_list(option, opt_str, value, parser):
 
 
 def main():
-    load_snakefile()
+    find_snakefile()
     usage = "%prog [options] [task] ..."
     parser = optparse.OptionParser(usage="%prog [options] [task] ...")
     parser.add_option(
