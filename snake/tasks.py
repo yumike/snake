@@ -49,7 +49,7 @@ class BaseTask(object):
         registry.add(self)
 
     def __call__(self, func=None):
-        if hasattr(func, "__call__"):
+        if hasattr(func, '__call__'):
             self.func = func
             return self
         return self.call()
@@ -63,20 +63,20 @@ class BaseTask(object):
                 name = task.name
             else:
                 print task
-                raise Exception('Uknown object type provided as prerequisite.')
+                raise Exception("Uknown object type provided as prerequisite.")
             if name in self.prerequisites:
-                raise Exception('%s already registered as prerequisite.')
+                raise Exception("%s already registered as prerequisite.")
             prerequisites.append(name)
         return prerequisites
 
     def needs(self, *tasks, **kwargs):
-        replace = kwargs.get("replace", False)
+        replace = kwargs.get('replace', False)
         if self.prerequisites and not replace:
             raise Exception("%s already has some prerequisites.")
         self.prerequisites[:] = self._prepare_prerequisites(tasks)
 
     def also_needs(self, *tasks, **kwargs):
-        if kwargs.get("prepend", False):
+        if kwargs.get('prepend', False):
             self.prerequisites[0:0] = self._prepare_prerequisites(tasks)
         else:
             self.prerequisites.extend(self._prepare_prerequisites(tasks))

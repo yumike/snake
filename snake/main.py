@@ -33,7 +33,7 @@ def main():
     usage = "%prog [options] [task] ..."
     parser = optparse.OptionParser(usage="%prog [options] [task] ...")
     parser.add_option(
-        "-l", "--list", action="callback", callback=print_task_list,
+        '-l', '--list', action='callback', callback=print_task_list,
         help="print list of available tasks and exit")
     parser.disable_interspersed_args()
     options, args = parser.parse_args()

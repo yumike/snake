@@ -7,9 +7,9 @@ def _(t):
 
 @task
 def clean():
-    sh("rm README.html")
-    sh("find . -name '*.pyc' -delete")
-    sh("find . -name '*.pyo' -delete")
+    sh('rm README.html')
+    sh('find . -name "*.pyc" -delete')
+    sh('find . -name "*.pyo" -delete')
 
 @task
 def configure():
