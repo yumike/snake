@@ -19,11 +19,13 @@ class _TaskRegistry(object):
     def get_tasks_for(self, cls):
         return self._registry.get(cls, {})
 
-    def get(self, name, cls=None, fail_silently=False):
+    def get(self, name, cls=None, create=False, fail_silently=False):
         registry = self._registry
         if cls:
             if cls in self._registry and name in self._registry[cls]:
                 return self._registry[cls][name]
+            if create:
+                return cls(name)
         else:
             for tasks in registry.values():
                 if name in tasks:
@@ -37,15 +39,6 @@ registry = _TaskRegistry()
 
 
 class BaseTask(object):
-
-    @classmethod
-    def resolve(cls, name, local=True, create=False):
-        try:
-            return registry.get(name, cls if local else None)
-        except TaskNotFound:
-            if create:
-                return cls(name)
-            raise
 
     def __init__(self, name, needs=None):
         self.func = None
@@ -133,14 +126,14 @@ def task(*args, **kwargs):
     func = args[0]
     if hasattr(func, '__call__'):
         return wrapper(func)
-    task = Task.resolve(func, create=True)
+    task = registry.get(func, cls=Task, create=True)
     if needs:
         task.needs(*needs)
     return task
 
 
 def filetask(source, needs=None):
-    task = FileTask.resolve(source, create=True)
+    task = registry.get(source, cls=FileTask, create=True)
     if needs:
         needs = needs if isinstance(needs, (list, tuple)) else [needs]
         task.needs(*needs)
