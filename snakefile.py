@@ -1,10 +1,9 @@
 from snake.api import *
 
 
-@filetask('README.html', deps='README.rst')
+@filetask('README.html', needs='README.rst')
 def _(t):
     sh('rst2html.py README.rst > README.html')
-
 
 @task
 def clean():
@@ -16,10 +15,11 @@ def clean():
 def configure():
     print 'configure'
 
-task('build', deps='README.html')
+task('build').needs('README.html')
 
 @task
 def install():
     print 'install'
 
-task('default', deps=(clean, configure, 'build', install))
+task('default').needs(clean, configure, 'build')
+task('default').also_needs(install)

@@ -36,21 +36,6 @@ class _TaskRegistry(object):
 registry = _TaskRegistry()
 
 
-class DependencyList(list):
-
-    def add(self, *deps):
-        for dep in reversed(deps):
-            if isinstance(dep, basestring):
-                name = dep
-            elif isinstance(dep, Task):
-                name = dep.name
-            else:
-                raise Exception('Uknown object type provided as dependency.')
-            if name in self:
-                raise Exception('%s already registered as dependency.')
-            self.insert(0, name)
-
-
 class BaseTask(object):
 
     @classmethod
@@ -62,12 +47,12 @@ class BaseTask(object):
                 return cls(name)
             raise
 
-    def __init__(self, name, deps=None):
+    def __init__(self, name, needs=None):
         self.func = None
         self.name = name
-        self.deps = DependencyList()
-        if deps:
-            self.deps.add(*deps)
+        self.prerequisites = []
+        if needs:
+            self.needs(*needs)
         registry.add(self)
 
     def __call__(self, func=None):
@@ -75,6 +60,33 @@ class BaseTask(object):
             self.func = func
             return self
         return self.call()
+
+    def _prepare_prerequisites(self, tasks):
+        prerequisites = []
+        for task in tasks:
+            if isinstance(task, basestring):
+                name = task
+            elif isinstance(task, BaseTask):
+                name = task.name
+            else:
+                print task
+                raise Exception('Uknown object type provided as prerequisite.')
+            if name in self.prerequisites:
+                raise Exception('%s already registered as prerequisite.')
+            prerequisites.append(name)
+        return prerequisites
+
+    def needs(self, *tasks, **kwargs):
+        replace = kwargs.get("replace", False)
+        if self.prerequisites and not replace:
+            raise Exception("%s already has some prerequisites.")
+        self.prerequisites[:] = self._prepare_prerequisites(tasks)
+
+    def also_needs(self, *tasks, **kwargs):
+        if kwargs.get("prepend", False):
+            self.prerequisites[0:0] = self._prepare_prerequisites(tasks)
+        else:
+            self.prerequisites.extend(self._prepare_prerequisites(tasks))
 
     def call(self):
         raise NotImplementedError
@@ -84,14 +96,14 @@ class Task(BaseTask):
 
     _called = set()
 
-    def __init__(self, name, deps=None):
-        super(Task, self).__init__(name, deps=deps)
+    def __init__(self, name, needs=None):
+        super(Task, self).__init__(name, needs=needs)
 
     def call(self):
         if self.name not in self._called:
             self._called.add(self.name)
-            for dep in self.deps:
-                registry.get(dep)()
+            for prerequisite in self.prerequisites:
+                registry.get(prerequisite)()
             if self.func:
                 self.func()
 
@@ -100,34 +112,36 @@ class FileTask(BaseTask):
 
     def call(self):
         if self.func:
-            deps_max_mtime = max(os.stat(dep).st_mtime for dep in self.deps)
+            prerequisites_max_mtime = max(
+                os.stat(prerequisite).st_mtime
+                for prerequisite in self.prerequisites)
             if not os.path.exists(self.name)  or \
-               os.stat(self.name).st_mtime < deps_max_mtime:
+               os.stat(self.name).st_mtime < prerequisites_max_mtime:
                 self.func(self)
 
 
 def task(*args, **kwargs):
-    deps = kwargs.get('deps')
-    if deps and not isinstance(deps, (list, tuple)):
-        deps = [deps]
+    needs = kwargs.get('needs')
+    if needs and not isinstance(needs, (list, tuple)):
+        needs = [needs]
     def wrapper(func):
         if isinstance(func, Task):
             return func
-        return Task(func.__name__, deps=deps)(func)
+        return Task(func.__name__, needs=needs)(func)
     if not args:
         return wrapper
     func = args[0]
     if hasattr(func, '__call__'):
         return wrapper(func)
     task = Task.resolve(func, create=True)
-    if deps:
-        task.deps.add(*deps)
+    if needs:
+        task.needs(*needs)
     return task
 
 
-def filetask(source, deps=None):
+def filetask(source, needs=None):
     task = FileTask.resolve(source, create=True)
-    if deps:
-        deps = deps if isinstance(deps, (list, tuple)) else [deps]
-        task.deps.add(*deps)
+    if needs:
+        needs = needs if isinstance(needs, (list, tuple)) else [needs]
+        task.needs(*needs)
     return task
