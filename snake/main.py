@@ -33,7 +33,19 @@ def find_snakefile():
         path = os.path.split(path)[0]
 
 
+def load_requested_snakefile(option, opt_str, value, parser):
+    value = os.path.normpath(os.path.expanduser(value))
+    if not os.path.isabs(value):
+        value = os.path.normpath(os.path.join(os.getcwd(), value))
+    if os.path.isfile(value):
+        path, name = os.path.split(os.path.splitext(value)[0])
+        load_snakefile(path, name)
+    else:
+        load_snakefile(value)
+
+
 def print_task_list(option, opt_str, value, parser):
+    find_snakefile()
     if registry.has_tasks_for(Task):
         print("Task list:")
         for name in sorted(registry.get_tasks_for(Task)):
@@ -46,9 +58,11 @@ def print_task_list(option, opt_str, value, parser):
 
 
 def main():
-    find_snakefile()
     usage = "%prog [options] [task] ..."
     parser = optparse.OptionParser(usage="%prog [options] [task] ...")
+    parser.add_option(
+        '-f', '--snakefile', action='callback', type='string', dest='file',
+        callback=load_requested_snakefile, help="use FILE as snakefile")
     parser.add_option(
         '-l', '--list', action='callback', callback=print_task_list,
         help="print list of available tasks and exit")
