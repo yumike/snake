@@ -62,7 +62,6 @@ class BaseTask(object):
             elif isinstance(task, BaseTask):
                 name = task.name
             else:
-                print task
                 raise Exception("Uknown object type provided as prerequisite.")
             if name in self.prerequisites:
                 raise Exception("%s already registered as prerequisite.")
