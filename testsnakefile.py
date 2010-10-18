@@ -12,8 +12,8 @@ def clean():
     sh('find . -name "*.pyo" -delete')
 
 @task
-def configure():
-    print 'configure'
+def configure(t):
+    print(t.name)
 
 task('build').needs('README.html')
 

@@ -1,3 +1,4 @@
+import inspect
 import os
 
 
@@ -41,7 +42,7 @@ registry = _TaskRegistry()
 class BaseTask(object):
 
     def __init__(self, name, needs=None):
-        self.func = None
+        self._func = None
         self.name = name
         self.prerequisites = []
         if needs:
@@ -50,7 +51,7 @@ class BaseTask(object):
 
     def __call__(self, func=None):
         if hasattr(func, '__call__'):
-            self.func = func
+            self._func = func
             return self
         return self.call()
 
@@ -83,6 +84,13 @@ class BaseTask(object):
     def call(self):
         raise NotImplementedError
 
+    def func(self):
+        if self._func:
+            if inspect.getargspec(self._func)[0]:
+                self._func(self)
+            else:
+                self._func()
+
 
 class Task(BaseTask):
 
@@ -96,20 +104,18 @@ class Task(BaseTask):
             self._called.add(self.name)
             for prerequisite in self.prerequisites:
                 registry.get(prerequisite)()
-            if self.func:
-                self.func()
+            self.func()
 
 
 class FileTask(BaseTask):
 
     def call(self):
-        if self.func:
-            prerequisites_max_mtime = max(
-                os.stat(prerequisite).st_mtime
-                for prerequisite in self.prerequisites)
-            if not os.path.exists(self.name)  or \
-               os.stat(self.name).st_mtime < prerequisites_max_mtime:
-                self.func(self)
+        prerequisites_max_mtime = max(
+            os.stat(prerequisite).st_mtime
+            for prerequisite in self.prerequisites)
+        if not os.path.exists(self.name)  or \
+           os.stat(self.name).st_mtime < prerequisites_max_mtime:
+            self.func()
 
 
 def task(*args, **kwargs):
