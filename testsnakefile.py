@@ -13,13 +13,13 @@ def clean():
 
 @task
 def configure(t):
-    print(t.name)
+    info(t.name)
 
 task('build').needs('README.html')
 
 @task
 def install():
-    print 'install'
+    debug('install')
 
 task('default').needs(clean, configure, 'build')
 task('default').also_needs(install)
