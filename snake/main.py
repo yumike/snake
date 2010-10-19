@@ -10,19 +10,22 @@ from snake.utils import abort
 SNAKEFILE_LOADED = False
 
 
-def load_snakefile(path, name='snakefile'):
+def load_snakefile(path, name='snakefile', fail_silently=False):
     global SNAKEFILE_LOADED
     if not SNAKEFILE_LOADED:
         sys.path.insert(0, path)
         try:
             imported = __import__(name)
-            SNAKEFILE_LOADED = True
         except ImportError:
-            abort("couldn't find any snakefiles.")
+            if not fail_silently:
+                abort("couldn't find any snakefiles.")
+        else:
+            SNAKEFILE_LOADED = True
         del sys.path[0]
 
 
 def find_snakefile():
+    global SNAKEFILE_LOADED
     path = os.getcwd()
     while True:
         filepath = os.path.join(path, 'snakefile.py')
@@ -32,6 +35,8 @@ def find_snakefile():
         if not os.path.split(path)[1]:
             break
         path = os.path.split(path)[0]
+    if not SNAKEFILE_LOADED:
+        abort("couldn't find any snakefiles.")
 
 
 def load_requested_snakefile(option, opt_str, value, parser):
