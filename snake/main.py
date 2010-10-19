@@ -27,7 +27,7 @@ def find_snakefile():
     while True:
         filepath = os.path.join(path, 'snakefile.py')
         if os.path.isfile(filepath):
-            load_snakefile(filepath)
+            load_snakefile(path)
             break
         if not os.path.split(path)[1]:
             break
@@ -75,6 +75,7 @@ def main():
         help="print list of available tasks and exit")
     parser.disable_interspersed_args()
     options, args = parser.parse_args()
+    find_snakefile()
     if options.verbose:
         state.verbosity += 1
     if options.quiet:
