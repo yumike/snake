@@ -8,7 +8,7 @@ def read(filename):
 
 setup(
     name = 'Snake',
-    version = '0.0.2',
+    version = '0.1.1',
     url = 'http://github.com/yumike/snake',
     description = 'Snake is yet another Make-like tool inspired by Rake.',
     long_description = read('README.rst'),
