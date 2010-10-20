@@ -1,4 +1,5 @@
 import inspect
+import optparse
 import os
 
 
@@ -49,11 +50,11 @@ class BaseTask(object):
             self.needs(*needs)
         registry.add(self)
 
-    def __call__(self, func=None):
-        if hasattr(func, '__call__'):
-            self._func = func
+    def __call__(self, *args, **kwargs):
+        if len(args) == 1 and hasattr(args[0], '__call__'):
+            self._func = args[0]
             return self
-        return self.call()
+        return self.call(*args, **kwargs)
 
     def _prepare_prerequisites(self, tasks):
         prerequisites = []
@@ -118,6 +119,53 @@ class FileTask(BaseTask):
             self.func()
 
 
+class Command(BaseTask):
+
+    usage = '%%prog [global_options] %s [options]'
+
+    def __init__(self, name, needs=None, takes=None):
+        super(Command, self).__init__(name, needs=needs)
+        self.parser = optparse.OptionParser(usage=self.usage % self.name)
+        if takes:
+            self.takes(*takes)
+
+    def _add_options(self, options):
+        for option in options:
+            if isinstance(option, (list, tuple)):
+                dest = option[0]
+                name = '--%s' % dest.replace('_', '-')
+                help = option[1]
+                self.parser.add_option(name, dest=dest, help=help)
+            elif isinstance(option, optparse.Option):
+                self.parser.add_option(option)
+            else:
+                raise Exception("Uknown object type provided as option.")
+
+    def takes(self, *options, **kwargs):
+        if not self.parser.option_list and not kwargs.get('replace', False):
+            raise Exception("%s already has some prerequisites.")
+        self.parser.option_list = []
+        self._add_options(options)
+
+    def also_takes(self, *options):
+        self._add_options(options)
+
+    def call(self, args):
+        self.func(*self.parser.parse_args(args))
+
+    def func(self, options, args):
+        if self._func:
+            arglen = len(inspect.getargspec(self._func)[0])
+            if arglen == 3:
+                self._func(self, options, args)
+            elif arglen == 2:
+                self._func(options, args)
+            elif arglen == 1:
+                self._func(args)
+            else:
+                self._func()
+
+
 def task(*args, **kwargs):
     needs = kwargs.get('needs')
     if needs and not isinstance(needs, (list, tuple)):
@@ -143,3 +191,25 @@ def filetask(source, needs=None):
         needs = needs if isinstance(needs, (list, tuple)) else [needs]
         task.needs(*needs)
     return task
+
+
+def command(*args, **kwargs):
+    needs = kwargs.get('needs')
+    takes = kwargs.get('takes')
+    if needs and not isinstance(needs, (list, tuple)):
+        needs = [needs]
+    def wrapper(func):
+        if isinstance(func, Command):
+            return func
+        return Command(func.__name__, needs=needs, takes=takes)(func)
+    if not args:
+        return wrapper
+    func = args[0]
+    if hasattr(func, '__call__'):
+        return wrapper(func)
+    command = registry.get(func, cls=Command, create=True)
+    if needs:
+        command.needs(*needs)
+    if takes:
+        command.takes(*takes)
+    return command

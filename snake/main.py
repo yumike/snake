@@ -3,7 +3,7 @@ import os
 import sys
 
 from snake import state
-from snake.tasks import Task, FileTask, registry
+from snake.tasks import Command, FileTask, Task, registry
 from snake.utils import abort
 
 
@@ -87,8 +87,13 @@ def main():
         state.verbosity -= 1
     if not args:
         args = ['default']
-    for name in args:
+    while args:
+        name = args.pop(0)
         task = registry.get(name, fail_silently=True)
         if not task:
             abort("task %r was not found." % name)
-        task()
+        if isinstance(task, Command):
+            task(args)
+            exit()
+        else:
+            task()
