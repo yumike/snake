@@ -97,9 +97,6 @@ class Task(BaseTask):
 
     _called = set()
 
-    def __init__(self, name, needs=None):
-        super(Task, self).__init__(name, needs=needs)
-
     def call(self):
         if self.name not in self._called:
             self._called.add(self.name)
