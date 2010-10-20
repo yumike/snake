@@ -143,7 +143,7 @@ class Command(BaseTask):
 
     def takes(self, *options, **kwargs):
         if not self.parser.option_list and not kwargs.get('replace', False):
-            raise Exception("%s already has some prerequisites.")
+            raise Exception("%s already has some options.")
         self.parser.option_list = []
         self._add_options(options)
 
