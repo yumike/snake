@@ -16,7 +16,7 @@ In a directory with ``snakefile.py`` containing such code::
     def hello():
         print("Hello World!")
 
-    task('default').needs(hello)
+    task('default').depends_on(hello)
 
 one could run::
 
