@@ -1,5 +1,5 @@
 from snake.api import *
-from snake.namespaces import Namespace
+from snake.namespace import Namespace
 
 
 def test_snake():
