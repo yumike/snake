@@ -1,21 +1,23 @@
-import optparse
 import os
 import sys
 
-from snake import state
-from snake.tasks import Command, FileTask, Task, registry
-from snake.utils import abort
+from snake.core import Snake
 
 
 SNAKEFILE_LOADED = False
 
 
-def load_snakefile(path, name='snakefile', fail_silently=False):
+def abort(msg):
+    print >> sys.stderr, "Error: %s" % msg
+    sys.exit(1)
+
+
+def load_snakefile(path, fail_silently=False):
     global SNAKEFILE_LOADED
     if not SNAKEFILE_LOADED:
         sys.path.insert(0, path)
         try:
-            imported = __import__(name)
+            return __import__('snakefile')
         except ImportError:
             if not fail_silently:
                 abort("couldn't find any snakefiles.")
@@ -30,8 +32,7 @@ def find_snakefile():
     while True:
         filepath = os.path.join(path, 'snakefile.py')
         if os.path.isfile(filepath):
-            load_snakefile(path)
-            break
+            return load_snakefile(path)
         if not os.path.split(path)[1]:
             break
         path = os.path.split(path)[0]
@@ -39,61 +40,12 @@ def find_snakefile():
         abort("couldn't find any snakefiles.")
 
 
-def load_requested_snakefile(option, opt_str, value, parser):
-    value = os.path.normpath(os.path.expanduser(value))
-    if not os.path.isabs(value):
-        value = os.path.normpath(os.path.join(os.getcwd(), value))
-    if os.path.isfile(value):
-        path, name = os.path.split(os.path.splitext(value)[0])
-        load_snakefile(path, name)
-    else:
-        load_snakefile(value)
-
-
-def print_task_list(option, opt_str, value, parser):
-    find_snakefile()
-    if registry.has_tasks_for(Task):
-        print("Task list:")
-        for name in sorted(registry.get_tasks_for(Task)):
-            print " - %s" % name
-    if registry.has_tasks_for(FileTask):
-        print("File task list:")
-        for name in sorted(registry.has_tasks_for(FileTask)):
-            print " - %s" % name
-    exit()
-
-
 def main():
-    usage = "%prog [options] [task] ..."
-    parser = optparse.OptionParser(usage="%prog [options] [task] ...")
-    parser.add_option(
-        '-v', '--verbose', action='store_true', dest='verbose', default=False,
-        help="give more output")
-    parser.add_option(
-        '-q', '--quiet', action='store_true', dest='quiet', default=False,
-        help="give less output")
-    parser.add_option(
-        '-f', '--snakefile', action='callback', type='string', dest='file',
-        callback=load_requested_snakefile, help="use FILE as snakefile")
-    parser.add_option(
-        '-l', '--list', action='callback', callback=print_task_list,
-        help="print list of available tasks and exit")
-    parser.disable_interspersed_args()
-    options, args = parser.parse_args()
-    find_snakefile()
-    if options.verbose:
-        state.verbosity += 1
-    if options.quiet:
-        state.verbosity -= 1
-    if not args:
-        args = ['default']
-    while args:
-        name = args.pop(0)
-        task = registry.get(name, fail_silently=True)
-        if not task:
-            abort("task %r was not found." % name)
-        if isinstance(task, Command):
-            task(args)
-            exit()
-        else:
-            task()
+    snakefile = find_snakefile()
+    for name in dir(snakefile):
+        attr = getattr(snakefile, name)
+        if isinstance(attr, Snake):
+            attr.run()
+            break
+    else:
+        abort("couldn't find any Snake instance in snakefile.")
