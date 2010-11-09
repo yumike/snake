@@ -111,7 +111,9 @@ class Snake(object):
         arg = args[0]
         if hasattr(arg, '__call__'):
             return wrapper(arg)
-        command = self.current_namespace.resolve(arg, cls=Command, create=True)
+        command = self.current_namespace.resolve(
+            arg, cls=Command, create=True,
+            creation_kwargs={'disable_parser': disable_parser})
         if depends_on:
             command.depends_on(*depends_on)
         if takes:

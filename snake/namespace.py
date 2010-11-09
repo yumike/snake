@@ -25,11 +25,14 @@ class Namespace(dict):
         if not fail_silently:
             raise Exception("%r too long path" % name)
 
-    def resolve(self, name, cls=None, create=False, fail_silently=False):
+    def resolve(self, name, cls=None, create=False, creation_kwargs=None,
+                fail_silently=False):
         if name not in self and cls and create:
             if self.path:
                 name = ':'.join([self.path, name])
-            item = cls(name, self.snake)
+            if not creation_kwargs:
+                creation_kwargs = {}
+            item = cls(name, self.snake, **creation_kwargs)
             self.add(item)
             return item
         if name not in self:
