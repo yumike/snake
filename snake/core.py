@@ -93,6 +93,7 @@ class Snake(object):
                 not isinstance(takes[0], (optparse.Option, list, tuple)))
             if is_single_option:
                 takes = [takes]
+        disable_parser = kwargs.get('disable_parser', False)
         def wrapper(func):
             if isinstance(func, Command):
                 return func
@@ -100,8 +101,9 @@ class Snake(object):
                 name = ':'.join([self.current_namespace.path, func.__name__])
             else:
                 name = func.__name__
-            command = Command(name, self, prerequisites=depends_on,
-                              options=takes, func=func)
+            command = Command(
+                name, self, prerequisites=depends_on, options=takes,
+                disable_parser=disable_parser, func=func)
             self.current_namespace.add(command)
             return command
         if not args:
