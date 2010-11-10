@@ -136,6 +136,9 @@ class Snake(object):
         if not args:
             args = ['default']
         self.info("(in %s)" % self.basepath)
+        auto = self.find('auto', fail_silently=True)
+        if auto:
+            auto()
         while args:
             name = args.pop(0)
             task = self.find(name, fail_silently=True)
