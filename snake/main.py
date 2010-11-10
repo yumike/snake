@@ -32,7 +32,7 @@ def find_snakefile():
     while True:
         filepath = os.path.join(path, 'snakefile.py')
         if os.path.isfile(filepath):
-            return load_snakefile(path)
+            return load_snakefile(path), filepath
         if not os.path.split(path)[1]:
             break
         path = os.path.split(path)[0]
@@ -41,11 +41,11 @@ def find_snakefile():
 
 
 def main():
-    snakefile = find_snakefile()
+    snakefile, snakefilepath = find_snakefile()
     for name in dir(snakefile):
         attr = getattr(snakefile, name)
         if isinstance(attr, Snake):
-            attr.run()
+            attr.run(snakefilepath)
             break
     else:
         abort("couldn't find any Snake instance in snakefile.")

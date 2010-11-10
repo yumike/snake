@@ -16,7 +16,7 @@ class File(BaseTask):
             for prerequisite in self.prerequisites:
                 if prerequisite in self.snake.files:
                     self.snake.files[prerequisite]()
-                elif not os.path.exists(prerequisite):
+                elif not os.path.exists(self.snake.path(prerequisite)):
                     raise Exception("File %r does not exists" % prerequisite)
             if self._is_outdated():
                 self.call()

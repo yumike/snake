@@ -3,12 +3,12 @@ from snake.api import *
 
 @file("README.html")
 def _(t):
-    sh("touch README.html")
+    sh("touch %s" % path("README.html"))
 
 
 @task
 def clean():
-    sh('rm README.html')
+    sh('rm %s' % path("README.html"))
     sh('find . -name "*.pyc" -delete')
     sh('find . -name "*.pyo" -delete')
 
@@ -36,4 +36,4 @@ with namespace('users'):
 
 
 if __name__ == '__main__':
-    snake.run()
+    snake.run(__file__)

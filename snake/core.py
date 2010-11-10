@@ -1,4 +1,5 @@
 import optparse
+import os
 import subprocess
 import sys
 
@@ -11,6 +12,7 @@ from snake.tasks import Command, File, Task
 class Snake(object):
 
     def __init__(self, usage="%prog [options] [task] ..."):
+        self.basepath = None
         self.verbosity = 1
         self.tasks = Namespace('', self)
         self.current_namespace = self.tasks
@@ -120,7 +122,9 @@ class Snake(object):
             command.takes(*takes)
         return command
 
-    def run(self, args=None):
+    def run(self, snakefilepath, args=None):
+        self.basepath = os.path.dirname(
+            os.path.abspath(os.path.expanduser(snakefilepath)))
         if args is None:
             args = sys.argv[1:]
         options, args = self.parser.parse_args(args)
@@ -162,3 +166,9 @@ class Snake(object):
             kwargs['stdout'] = subprocess.PIPE
         self.info("[sh] %s" % command)
         return subprocess.Popen([command], **kwargs).communicate()[0]
+
+    def path(self, path):
+        path = os.path.expanduser(path)
+        if self.basepath and not os.path.isabs(path):
+            return os.path.normpath(os.path.join(self.basepath, path))
+        return path

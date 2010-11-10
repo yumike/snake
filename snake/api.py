@@ -10,6 +10,7 @@ file = snake.file
 find = snake.find
 info = snake.info
 namespace = snake.namespace
+path = snake.path
 sh = snake.sh
 task = snake.task
 warning = snake.warning
