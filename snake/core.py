@@ -134,6 +134,7 @@ class Snake(object):
             self.verbosity -= 1
         if not args:
             args = ['default']
+        self.info("(in %s)" % self.basepath)
         while args:
             name = args.pop(0)
             task = self.find(name, fail_silently=True)
@@ -165,6 +166,8 @@ class Snake(object):
         if capture:
             kwargs['stdout'] = subprocess.PIPE
         self.info("[sh] %s" % command)
+        if self.basepath:
+            command = 'cd %s && %s' % (self.basepath.replace(' ', '\ '), command)
         return subprocess.Popen([command], **kwargs).communicate()[0]
 
     def path(self, path):
