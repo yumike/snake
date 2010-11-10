@@ -11,7 +11,8 @@ from snake.tasks import Command, File, Task
 
 class Snake(object):
 
-    def __init__(self, usage="%prog [options] [task] ..."):
+    def __init__(self, config=None, usage="%prog [options] [task] ..."):
+        self.config = config if config is None else {}
         self.basepath = None
         self.verbosity = 1
         self.tasks = Namespace('', self)
