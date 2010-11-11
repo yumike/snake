@@ -179,3 +179,9 @@ class Snake(object):
         if self.basepath and not os.path.isabs(path):
             return os.path.normpath(os.path.join(self.basepath, path))
         return path
+
+    def outdated(self, target, source):
+        target = self.path(target)
+        source = self.path(source)
+        return (not os.path.exists(target) or
+                os.stat(target).st_mtime < os.stat(source).st_mtime)
