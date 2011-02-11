@@ -1,10 +1,7 @@
+import imp
 import os
 import sys
-
 from snake.core import Snake
-
-
-SNAKEFILE_LOADED = False
 
 
 def abort(msg):
@@ -12,40 +9,34 @@ def abort(msg):
     sys.exit(1)
 
 
-def load_snakefile(path, fail_silently=False):
-    global SNAKEFILE_LOADED
-    if not SNAKEFILE_LOADED:
-        sys.path.insert(0, path)
-        try:
-            return __import__('snakefile')
-        except ImportError:
-            if not fail_silently:
-                abort("couldn't find any snakefile.")
-        else:
-            SNAKEFILE_LOADED = True
-        del sys.path[0]
+def get_ascending_paths(path):
+    paths = []
+    while True:
+        paths.append(path)
+        path, tail = os.path.split(path)
+        if not tail:
+            break
+    return paths
 
 
 def find_snakefile():
-    global SNAKEFILE_LOADED
-    path = os.getcwd()
-    while True:
-        filepath = os.path.join(path, 'snakefile.py')
-        if os.path.isfile(filepath):
-            return load_snakefile(path), filepath
-        if not os.path.split(path)[1]:
-            break
-        path = os.path.split(path)[0]
-    if not SNAKEFILE_LOADED:
+    paths = get_ascending_paths(os.getcwd())
+    try:
+        return imp.find_module('snakefile', paths)
+    except:
         abort("couldn't find any snakefile.")
 
 
+def get_snakefile():
+    return imp.load_module('snakefile', *find_snakefile())
+
+
 def main():
-    snakefile, snakefilepath = find_snakefile()
+    snakefile = get_snakefile()
     for name in dir(snakefile):
         attr = getattr(snakefile, name)
         if isinstance(attr, Snake):
-            attr.run(snakefilepath)
+            attr.run(snakefile.__file__)
             break
     else:
         abort("couldn't find any Snake instance in snakefile.")
