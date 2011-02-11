@@ -20,7 +20,7 @@ def load_snakefile(path, fail_silently=False):
             return __import__('snakefile')
         except ImportError:
             if not fail_silently:
-                abort("couldn't find any snakefiles.")
+                abort("couldn't find any snakefile.")
         else:
             SNAKEFILE_LOADED = True
         del sys.path[0]
@@ -37,7 +37,7 @@ def find_snakefile():
             break
         path = os.path.split(path)[0]
     if not SNAKEFILE_LOADED:
-        abort("couldn't find any snakefiles.")
+        abort("couldn't find any snakefile.")
 
 
 def main():
