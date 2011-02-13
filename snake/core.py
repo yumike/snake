@@ -148,6 +148,9 @@ class Snake(object):
             kwargs['stdout'] = subprocess.PIPE
         self.info("[sh] %s" % command)
         if not cwd:
-            path = self.cnakefile_path.replace(' ', '\ ')
+            path = self.snakefile_path.replace(' ', '\ ')
             command = 'cd %s && %s' % (path, command)
         return subprocess.Popen([command], **kwargs).communicate()[0]
+
+
+snake = Snake()
