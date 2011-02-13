@@ -8,12 +8,26 @@ Snake is yet another Make-like tool, written on Python and inspired by Rake.
 Usage Example
 =============
 
-In a directory with ``snakefile.py`` containing such code::
+In a directory with ``snakefile.py`` (or in any sub-directory) containing such code::
 
-    def hello():
-        print("Hello World!")
+    from snake import depends_on, sh
 
-one could run::
+    @depends_on('virtualenv', 'install')
+    def init():
+        print("Activate your virtualenv with:")
+        print("  $ source bin/activate")
 
-    $ snake hello
-    Hello World!
+    def virtualenv():
+        sh('virtualenv -q --no-site-packages .')
+
+    def install():
+        sh('bin/pip -q install -e .')
+
+run::
+
+    $ snake init
+    (in /Users/yumike/Projects/Snake)
+    [sh] virtualenv -q --no-site-packages .
+    [sh] bin/pip -q install -e .
+    Activate your virtualenv with:
+      $ source bin/activate
