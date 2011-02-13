@@ -1,154 +1,131 @@
+import inspect
+import imp
 import optparse
 import os
 import subprocess
 import sys
 
-from contextlib import contextmanager
-
-from snake.namespace import Namespace
-from snake.tasks import Command, File, Task
-
 
 class Snake(object):
 
-    def __init__(self, config=None, usage="%prog [options] [task] ..."):
-        self.config = config if config is None else {}
+    usage = "%prog [options] [task] ..."
+
+    def __init__(self, snakefile_name=None, usage=None):
+        self.snakefile_name = snakefile_name
         self.basepath = None
         self.verbosity = 1
-        self.tasks = Namespace('', self)
-        self.current_namespace = self.tasks
-        self.files = {}
         self.called = set()
-        self.parser = optparse.OptionParser(usage=usage)
-        self.parser.disable_interspersed_args()
-        self.set_parser_options()
 
-    def set_parser_options(self):
-        self.parser.add_option(
-            '-v', '--verbose', action='store_true', dest='verbose', default=False,
-            help="give more output")
-        self.parser.add_option(
-            '-q', '--quiet', action='store_true', dest='quiet', default=False,
-            help="give less output")
+    def is_task(self, obj):
+        return (hasattr(obj, '__module__') and
+                obj.__module__ == self.snakefile_name and
+                callable(obj) and
+                (not hasattr(obj, 'not_a_task') or not obj.not_a_task))
 
-    def find(self, name, fail_silently=False):
-        if name in self.files:
-            return self.files[name]
-        item = self.tasks.find(name.split(':'), fail_silently=fail_silently)
-        if isinstance(item, Namespace):
-            item = item.find(['default'], fail_silently=fail_silently)
-        return item
+    def is_namespace(self, obj):
+        return (hasattr(obj, '__module__') and
+                obj.__module__ == self.snakefile_name and
+                inspect.isclass(obj) and
+                (not hasattr(obj, 'not_a_namespace') or not obj.not_a_namespace))
 
-    @contextmanager
-    def namespace(self, name):
-        if name not in self.current_namespace:
-            self.current_namespace.add(Namespace(name, self))
-        elif not isinstance(Namespace, self.current_namespace[name]):
-            raise Exception("%r already exists as task" % name)
-        parent_namespace = self.current_namespace
-        self.current_namespace = self.current_namespace[name]
-        yield self.current_namespace
-        self.current_namespace = parent_namespace
+    def get_ascending_paths(self, path):
+        paths = []
+        while True:
+            paths.append(path)
+            path, tail = os.path.split(path)
+            if not tail:
+                break
+        return paths
 
-    def task(self, *args, **kwargs):
-        depends_on = kwargs.get('depends_on')
-        if depends_on and not isinstance(depends_on, (list, tuple)):
-            depends_on = [depends_on]
-        def wrapper(func):
-            if isinstance(func, Task):
-                return func
-            if self.current_namespace.path:
-                name = ':'.join([self.current_namespace.path, func.__name__])
-            else:
-                name = func.__name__
-            task = Task(name, self, prerequisites=depends_on, func=func)
-            self.current_namespace.add(task)
-            return task
-        if not args:
-            return wrapper
-        arg = args[0]
-        if hasattr(arg, '__call__'):
-            return wrapper(arg)
-        task = self.current_namespace.resolve(arg, cls=Task, create=True)
-        if depends_on:
-            task.depends_on(*depends_on)
-        return task
+    def find_snakefile(self):
+        paths = self.get_ascending_paths(os.getcwd())
+        try:
+            return imp.find_module('snakefile', paths)
+        except:
+            self.abort("couldn't find any snakefile.")
 
-    def file(self, name, depends_on=None):
-        if depends_on and not isinstance(depends_on, (list, tuple)):
-            depends_on = [depends_on]
-        def wrapper(func):
-            if isinstance(func, File):
-                return func
-            file = File(name, self, prerequisites=depends_on, func=func)
-            self.files[name] = file
-            return file
-        return wrapper
+    def get_snakefile(self):
+        return imp.load_module('snakefile', *self.find_snakefile())
 
-    def command(self, *args, **kwargs):
-        depends_on = kwargs.get('depends_on')
-        if depends_on and not isinstance(depends_on, (list, tuple)):
-            depends_on = [depends_on]
-        takes = kwargs.get('takes')
-        if takes:
-            is_single_option = (
-                not isinstance(takes, (list, tuple)) or
-                not isinstance(takes[0], (optparse.Option, list, tuple)))
-            if is_single_option:
-                takes = [takes]
-        disable_parser = kwargs.get('disable_parser', False)
-        def wrapper(func):
-            if isinstance(func, Command):
-                return func
-            if self.current_namespace.path:
-                name = ':'.join([self.current_namespace.path, func.__name__])
-            else:
-                name = func.__name__
-            command = Command(
-                name, self, prerequisites=depends_on, options=takes,
-                disable_parser=disable_parser, func=func)
-            self.current_namespace.add(command)
-            return command
-        if not args:
-            return wrapper
-        arg = args[0]
-        if hasattr(arg, '__call__'):
-            return wrapper(arg)
-        command = self.current_namespace.resolve(
-            arg, cls=Command, create=True,
-            creation_kwargs={'disable_parser': disable_parser})
-        if depends_on:
-            command.depends_on(*depends_on)
-        if takes:
-            command.takes(*takes)
-        return command
+    def get_snakefile_path(self, snakefile):
+        return os.path.dirname(
+            os.path.abspath(os.path.expanduser(snakefile.__file__)))
 
-    def run(self, snakefilepath, args=None):
-        self.basepath = os.path.dirname(
-            os.path.abspath(os.path.expanduser(snakefilepath)))
-        if args is None:
-            args = sys.argv[1:]
-        options, args = self.parser.parse_args(args)
-        if options.verbose:
-            self.verbosity += 1
-        if options.quiet:
-            self.verbosity -= 1
-        if not args:
-            args = ['default']
-        self.info("(in %s)" % self.basepath)
-        auto = self.find('auto', fail_silently=True)
-        if auto:
-            auto()
-        while args:
-            name = args.pop(0)
-            task = self.find(name, fail_silently=True)
-            if not task:
-                self.abort("task %r was not found." % name)
-            if isinstance(task, Command):
-                task(args)
-                sys.exit()
-            else:
-                task()
+    def get_tasks(self):
+        tasks = {}
+        namespaces = {}
+        for obj_name in dir(self.snakefile_module):
+            if obj_name.startswith('_'):
+                continue
+            obj = getattr(self.snakefile_module, obj_name)
+            if self.is_namespace(obj):
+                namespace = obj()
+                namespaces[obj_name.lower()] = obj()
+            elif self.is_task(obj):
+                tasks[obj_name.lower()] = {'func': obj, 'doc': obj.__doc__}
+        for ns_name, namespace in namespaces.items():
+            for obj_name in dir(namespace):
+                if obj_name.startswith('_'):
+                    continue
+                obj = getattr(namespace, obj_name)
+                if self.is_task(obj):
+                    task_name = '%s.%s' % (ns_name, obj_name.lower())
+                    tasks[task_name] = {'func': obj, 'doc': obj.__doc__}
+        return tasks
+
+    def init_snakefile(self):
+        if self.snakefile_name is None:
+            self.snakefile_module = self.get_snakefile()
+            self.snakefile_name = self.snakefile_module.__name__
+        else:
+            self.snakefile_module = sys.modules[self.snakefile_name]
+        self.snakefile_path = self.get_snakefile_path(self.snakefile_module)
+        self.tasks = self.get_tasks()
+        self.info("(in %s)" % self.snakefile_path)
+
+    def get_parser(self):
+        parser = optparse.OptionParser(usage=self.usage)
+        parser.disable_interspersed_args()
+        parser.add_option('-v', '--verbose', action='store_true',
+                          dest='verbose', default=False,
+                          help="give more output")
+        parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
+                          default=False, help="give less output")
+        parser.add_option('-l', '--list', action='callback',
+                          callback=self.print_task_list,
+                          help="print task list end exit")
+        return parser
+
+    def print_task_list(self, option, opt_str, value, parser):
+        self.init_snakefile()
+        tasks = {}
+        for name, info in self.tasks.items():
+            if info['doc']:
+                tasks[name] = info['doc']
+        if tasks:
+            max_length = max(len(name) for name in tasks)
+            for name in sorted(tasks):
+                doc = tasks[name]
+                if doc:
+                    print('%s  # %s ' % (name.ljust(max_length), doc))
+        exit()
+
+    def run_task(self, name):
+        if name in self.called:
+            return
+        self.called.add(name)
+        task = self.tasks[name]['func']
+        if hasattr(task, 'depends_on'):
+            for dep in task.depends_on:
+                self.run_task(dep)
+        task()
+
+    def run(self):
+        parser = self.get_parser()
+        options, args = parser.parse_args()
+        self.init_snakefile()
+        for name in args:
+            self.run_task(name)
 
     def info(self, msg):
         if self.verbosity > 1:
@@ -165,23 +142,12 @@ class Snake(object):
         self.error(msg)
         sys.exit(1)
 
-    def sh(self, command, capture=False):
+    def sh(self, command, cwd=False, capture=False):
         kwargs = {'shell': True}
         if capture:
             kwargs['stdout'] = subprocess.PIPE
         self.info("[sh] %s" % command)
-        if self.basepath:
-            command = 'cd %s && %s' % (self.basepath.replace(' ', '\ '), command)
+        if not cwd:
+            path = self.cnakefile_path.replace(' ', '\ ')
+            command = 'cd %s && %s' % (path, command)
         return subprocess.Popen([command], **kwargs).communicate()[0]
-
-    def path(self, path):
-        path = os.path.expanduser(path)
-        if self.basepath and not os.path.isabs(path):
-            return os.path.normpath(os.path.join(self.basepath, path))
-        return path
-
-    def outdated(self, target, source):
-        target = self.path(target)
-        source = self.path(source)
-        return (not os.path.exists(target) or
-                os.stat(target).st_mtime < os.stat(source).st_mtime)
