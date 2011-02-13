@@ -123,6 +123,10 @@ class Snake(object):
     def run(self):
         parser = self.get_parser()
         options, args = parser.parse_args()
+        if options.verbose:
+            self.verbosity += 1
+        if options.quiet:
+            self.verbosity -= 1
         self.init_snakefile()
         for name in args:
             self.run_task(name)
