@@ -9,7 +9,7 @@ def read(filename):
 setup(
     name = 'Snake',
     version = '0.2',
-    url = 'http://github.com/yumike/snake',
+    url = 'http://yumatov.org/snake/',
     description = 'Snake is yet another Make-like tool inspired by Rake.',
     long_description = read('README.rst'),
     author = 'Mike Yumatov',
