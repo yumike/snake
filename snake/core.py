@@ -10,7 +10,7 @@ class Snake(object):
 
     usage = "%prog [options] [task] ..."
 
-    def __init__(self, snakefile_name=None, usage=None):
+    def __init__(self, snakefile_name=None):
         self.snakefile_name = snakefile_name
         self.basepath = None
         self.verbosity = 1
