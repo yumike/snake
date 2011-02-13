@@ -13,7 +13,7 @@ class Snake(object):
     def __init__(self, snakefile_name=None):
         self.snakefile_name = snakefile_name
         self.basepath = None
-        self.verbosity = 2
+        self.verbosity = 1
         self.called = set()
 
     def is_task(self, obj):
@@ -128,16 +128,15 @@ class Snake(object):
             self.run_task(name)
 
     def info(self, msg):
-        if self.verbosity > 2:
-            print(msg)
-
-    def notice(self, msg):
         if self.verbosity > 1:
             print(msg)
 
-    def warning(self, msg):
+    def notice(self, msg):
         if self.verbosity > 0:
             print(msg)
+
+    def warning(self, msg):
+        print(msg)
 
     def error(self, msg):
         print >> sys.stderr, "Error: %s" % msg
