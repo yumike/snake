@@ -55,9 +55,12 @@ class Snake(object):
         tasks = {}
         namespaces = {}
         for obj_name in dir(self.snakefile_module):
+            obj = getattr(self.snakefile_module, obj_name)
+            if isinstance(obj, Snake) and obj is not self:
+                self.abort("snakefile contains Snake instance which differs "
+                           "from used now.")
             if obj_name.startswith('_'):
                 continue
-            obj = getattr(self.snakefile_module, obj_name)
             if self.is_namespace(obj):
                 namespace = obj()
                 namespaces[obj_name.lower()] = obj()
