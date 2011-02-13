@@ -13,7 +13,7 @@ class Snake(object):
     def __init__(self, snakefile_name=None):
         self.snakefile_name = snakefile_name
         self.basepath = None
-        self.verbosity = 1
+        self.verbosity = 2
         self.called = set()
 
     def is_task(self, obj):
@@ -81,7 +81,7 @@ class Snake(object):
             self.snakefile_module = sys.modules[self.snakefile_name]
         self.snakefile_path = self.get_snakefile_path(self.snakefile_module)
         self.tasks = self.get_tasks()
-        self.info("(in %s)" % self.snakefile_path)
+        self.notice("(in %s)" % self.snakefile_path)
 
     def get_parser(self):
         parser = optparse.OptionParser(usage=self.usage)
@@ -128,6 +128,10 @@ class Snake(object):
             self.run_task(name)
 
     def info(self, msg):
+        if self.verbosity > 2:
+            print(msg)
+
+    def notice(self, msg):
         if self.verbosity > 1:
             print(msg)
 
@@ -146,7 +150,7 @@ class Snake(object):
         kwargs = {'shell': True}
         if capture:
             kwargs['stdout'] = subprocess.PIPE
-        self.info("[sh] %s" % command)
+        self.notice("[sh] %s" % command)
         if not cwd:
             path = self.snakefile_path.replace(' ', '\ ')
             command = 'cd %s && %s' % (path, command)
