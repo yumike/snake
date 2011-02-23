@@ -151,6 +151,16 @@ class Snake(object):
         self.error(msg)
         sys.exit(1)
 
+    def task(self, f):
+        f.task = True
+        return task
+
+    def depends_on(*tasks):
+        def decorator(f):
+            f.depends_on = tasks
+            return f
+        return decorator
+
     def sh(self, command, cwd=False, capture=False):
         kwargs = {'shell': True}
         if capture:
@@ -160,6 +170,3 @@ class Snake(object):
             path = self.snakefile_path.replace(' ', '\ ')
             command = 'cd %s && %s' % (path, command)
         return subprocess.Popen([command], **kwargs).communicate()[0]
-
-
-snake = Snake()
