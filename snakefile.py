@@ -11,7 +11,7 @@ def clean():
 
 
 @snake.task
-@depends_on('virtualenv.create')
+@snake.depends_on('virtualenv.create')
 def develop():
     """create virtualenv and setup Snake into it for development"""
     snake.sh('bin/pip install -e .')
