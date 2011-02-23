@@ -10,7 +10,7 @@ Usage Example
 
 In a directory with ``snakefile.py`` (or in any sub-directory) containing such code::
 
-    from snake import depends_on, sh, task
+    from snake import *
 
     @task
     @depends_on('virtualenv', 'install')
