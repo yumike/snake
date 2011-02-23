@@ -19,8 +19,7 @@ class Snake(object):
     def is_task(self, obj):
         return (hasattr(obj, '__module__') and
                 obj.__module__ == self.snakefile_name and
-                callable(obj) and
-                (not hasattr(obj, 'not_a_task') or not obj.not_a_task))
+                callable(obj) and hasattr(obj, 'task') and obj.task)
 
     def is_namespace(self, obj):
         return (hasattr(obj, '__module__') and

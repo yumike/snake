@@ -5,6 +5,6 @@ def depends_on(*tasks):
     return decorator
 
 
-def not_a_task(f):
-    f.not_a_task = True
+def task(f):
+    f.task = True
     return f

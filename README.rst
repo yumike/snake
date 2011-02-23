@@ -10,16 +10,19 @@ Usage Example
 
 In a directory with ``snakefile.py`` (or in any sub-directory) containing such code::
 
-    from snake import depends_on, sh
+    from snake import depends_on, sh, task
 
+    @task
     @depends_on('virtualenv', 'install')
     def init():
         print("Activate your virtualenv with:")
         print("  $ source bin/activate")
 
+    @task
     def virtualenv():
         sh('virtualenv -q --no-site-packages .')
 
+    @task
     def install():
         sh('bin/pip -q install -e .')
 
