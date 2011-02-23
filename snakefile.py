@@ -1,7 +1,7 @@
-from snake.core import Snake
+from snake import App, Snake
 
 
-snake = Snake(__name__)
+snake = Snake()
 
 
 @snake.task
@@ -17,18 +17,17 @@ def develop():
     snake.sh('bin/pip install -e .')
 
 
-class Virtualenv:
-
+with snake.namespace('virtualenv'):
     @snake.task
-    def create(self):
+    def create():
         """create virtual environment"""
         snake.sh('virtualenv --no-site-packages --distribute .')
 
     @snake.task
-    def destroy(self):
+    def destroy():
         """destroy virtual environment"""
         snake.sh('rm -rf bin include lib src')
 
 
 if __name__ == '__main__':
-    snake.run()
+    App(__name__).run()

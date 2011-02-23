@@ -17,7 +17,7 @@ setup(
     packages = find_packages(),
     entry_points = {
         'console_scripts': [
-            'snake = snake.core:snake.run',
+            'snake = snake.app:run',
         ]
     },
 )
