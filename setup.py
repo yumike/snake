@@ -15,6 +15,8 @@ setup(
     author = 'Mike Yumatov',
     author_email = 'mike@yumatov.org',
     packages = find_packages(),
+    test_suite = 'nose.collector',
+    tests_require = ['nose'],
     entry_points = {
         'console_scripts': [
             'snake = snake.app:run',
