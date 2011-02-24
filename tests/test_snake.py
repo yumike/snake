@@ -3,33 +3,32 @@ from snake.core import Snake
 
 
 snake = Snake()
+stack = []
 
 
 @snake.task
 def configure():
-    pass
+    stack.append('configure')
 
 
 @snake.task
 def build():
-    pass
+    stack.append('build')
 
 
 @snake.task
 @snake.depends_on('configure', 'build')
 def install():
     """Configure, build and install project"""
-
-
-def setup_func():
-    pass
+    stack.append('install')
 
 
 def teardown_func():
+    stack[:] = []
     snake.called = set()
 
 
-reset_snake = with_setup(setup_func, teardown_func)
+reset_snake = with_setup(teardown=teardown_func)
 
 
 def test_snake_defaults():
@@ -78,6 +77,7 @@ def test_task_overriding():
 def test_run_task():
     snake.run_task('build')
     assert snake.called == set(['build'])
+    assert stack == ['build']
 
 
 @reset_snake
@@ -86,6 +86,13 @@ def test_run_task_with_dependencies():
     assert snake.called == set(['configure', 'build', 'install'])
 
 
+@reset_snake
 def test_run_snake():
-    snake.run(['configure', 'build', 'install'])
+    snake.run(['install'])
     assert snake.called == set(['configure', 'build', 'install'])
+
+
+@reset_snake
+def test_task_called_once():
+    snake.run(['configure', 'configure'])
+    assert stack == ['configure']
